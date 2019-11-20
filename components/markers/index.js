@@ -259,6 +259,9 @@ class Markers extends Component<MarkerProps, {}> {
   refreshMarkersLayout(nextProps: MarkerProps) {
     const markerChanged = (nextProps.markers !== this.props.markers);
     const clusterChanged = ((!!this.props.useCluster) !== (!!nextProps.useCluster));
+    if (clusterChanged) {
+      this.checkClusterSettings(nextProps);
+    }
     if (markerChanged) {
       this.markersCache.length && this.markersCache.forEach((marker) => {
         if (marker) {
@@ -274,9 +277,6 @@ class Markers extends Component<MarkerProps, {}> {
       if (this.markersWindow) {
         this.markersWindow.close();
       }
-    }
-    if (clusterChanged) {
-      this.checkClusterSettings(nextProps);
     }
   }
 
