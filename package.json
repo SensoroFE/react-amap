@@ -41,7 +41,7 @@
     "bisheng-plugin-react": "0.2.2",
     "css-loader": "^0.26.1",
     "dora-plugin-proxy": "^0.8.5",
-    "eslint": "^3.17.1",
+    "eslint": "^4.18.2",
     "eslint-config-elemefe": "^0.2.0",
     "eslint-loader": "^1.9.0",
     "eslint-plugin-flowtype": "^2.30.3",
