@@ -408,7 +408,9 @@ class Markers extends Component<MarkerProps, {}> {
   bindClusterEvent(events: Object) {
     this.mapCluster.on('click', (e) => {
       if (this.props.useCluster && this.props.useCluster.zoomOnClick) {
-        //
+        if (isFun(events.click)) {
+          events.click(e);
+        }
       } else {
         let returnValue = true;
         if (isFun(events.click)) {
