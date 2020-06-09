@@ -92,7 +92,8 @@ const ClusterProps = [
   'averageCenter',
   'styles',
   'zoomOnClick',
-  'renderClusterMarker'
+  'renderClusterMarker',
+  'renderCluserMarker'
 ];
 
 const IdKey = '__react_amap__';
