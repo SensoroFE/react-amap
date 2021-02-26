@@ -9,7 +9,7 @@
     "npm-build": "rm -rf lib && babel components -d lib",
     "site": "npm run npm-build && bisheng build",
     "start": "npm run npm-build && bisheng start",
-    "prepublish": "npm run browser-build && npm run npm-build",
+   
     "flow": "flow; test $? -eq 0 -o $? -eq 2"
   },
   "author": "ohislh@gmail.com",
