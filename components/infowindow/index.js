@@ -48,6 +48,7 @@ type IWProps = {
   className?: string,
   __map__: Object,
   __ele__: HTMLElement,
+  context: any,
 };
 
 class InfoWindow extends Component<IWProps, {}> {
