@@ -6,8 +6,9 @@ import log from '../utils/log';
 import {
   MarkerAllProps,
   getPropValue,
-  renderMarkerComponent
+  renderMarkerComponent,
 } from '../utils/markerUtils';
+import { AMapContext } from '../context';
 
 if (typeof window !== 'undefined') {
   const styleText = `.amap_markers_pop_window{
@@ -82,7 +83,7 @@ const MAX_INFO_MARKERS = 42;
 const defaultOpts = {
   useCluster: false,
   markersCache: [],
-  markerIDCache: []
+  markerIDCache: [],
 };
 
 const ClusterProps = [
@@ -93,7 +94,7 @@ const ClusterProps = [
   'styles',
   'zoomOnClick',
   'renderClusterMarker',
-  'renderCluserMarker'
+  'renderCluserMarker',
 ];
 
 const IdKey = '__react_amap__';
@@ -110,9 +111,8 @@ type MarkerDOM = HTMLDivElement & { markerRef: Object };
  */
 
 class Markers extends Component<MarkerProps, {}> {
-
   map: Object;
-  element: HTMLDivElement & {markerRef: Object};
+  element: HTMLDivElement & { markerRef: Object };
   markersCache: Array<Object>;
   markerIDCache: Array<number>;
   useCluster: ?boolean;
@@ -135,7 +135,10 @@ class Markers extends Component<MarkerProps, {}> {
         this.useCluster = null;
         this.markerIDCache = defaultOpts.markerIDCache;
         this.resetOffset = new window.AMap.Pixel(-SIZE_WIDTH / 2, -SIZE_HEIGHT);
-        this.hoverOffset = new window.AMap.Pixel(-SIZE_HOVER_WIDTH / 2, -SIZE_HOVER_HEIGHT);
+        this.hoverOffset = new window.AMap.Pixel(
+          -SIZE_HOVER_WIDTH / 2,
+          -SIZE_HOVER_HEIGHT,
+        );
         this.createMarkers(props);
       }
     }
@@ -150,44 +153,56 @@ class Markers extends Component<MarkerProps, {}> {
 
     const mapMarkers = [];
     const markerReactChildDOM = {};
-    markers.length && markers.forEach((raw, idx) => {
-      const options = this.buildCreateOptions(props, raw, idx);
-      options.map = this.map;
+    markers.length &&
+      markers.forEach((raw, idx) => {
+        const options = this.buildCreateOptions(props, raw, idx);
+        options.map = this.map;
 
-      let markerContent = null;
-      if (isFun(props.render)) {
-        // $FlowFixMe
-        let markerChild = props.render(raw);
-        if (markerChild !== false) {
-          const div = document.createElement('div');
-          div.setAttribute(IdKey, '1');
-          markerContent = div;
-          markerReactChildDOM[idx] = markerChild;
+        let markerContent = null;
+        if (isFun(props.render)) {
+          // $FlowFixMe
+          let markerChild = props.render(raw);
+          if (markerChild !== false) {
+            const div = document.createElement('div');
+            div.setAttribute(IdKey, '1');
+            markerContent = div;
+            markerReactChildDOM[idx] = markerChild;
+          }
         }
-      }
 
-      if (!markerContent) {
-        markerContent = document.createElement('div');
-        const img = document.createElement('img');
-        img.src = '//webapi.amap.com/theme/v1.3/markers/n/mark_bs.png';
-        markerContent.appendChild(img);
-      }
-      options.content = markerContent;
+        if (!markerContent) {
+          markerContent = document.createElement('div');
+          const img = document.createElement('img');
+          img.src = '//webapi.amap.com/theme/v1.3/markers/n/mark_bs.png';
+          markerContent.appendChild(img);
+        }
+        options.content = markerContent;
 
-      const marker = new window.AMap.Marker(options);
-      marker.on('click', (e) => { this.onMarkerClick(e); });
-      marker.on('mouseover', (e) => { this.onMarkerHover(e); });
-      marker.on('mouseout', (e) => { this.onMarkerHoverOut(e); });
+        const marker = new window.AMap.Marker(options);
+        marker.on('click', (e) => {
+          this.onMarkerClick(e);
+        });
+        marker.on('mouseover', (e) => {
+          this.onMarkerHover(e);
+        });
+        marker.on('mouseout', (e) => {
+          this.onMarkerHoverOut(e);
+        });
 
-      marker.render = (function(marker) {
-        return function(component) {
-          return renderMarkerComponent(component, marker);
-        };
-      }(marker));
+        marker.render = (function (marker) {
+          return function (component) {
+            return renderMarkerComponent(
+              component,
+              marker,
+              this.props.__map__,
+              this.props.context,
+            );
+          };
+        })(marker);
 
-      this.bindMarkerEvents(marker);
-      mapMarkers.push(marker);
-    });
+        this.bindMarkerEvents(marker);
+        mapMarkers.push(marker);
+      });
     this.markersCache = mapMarkers;
     this.markerReactChildDOM = markerReactChildDOM;
     this.exposeMarkerInstance();
@@ -226,7 +241,14 @@ class Markers extends Component<MarkerProps, {}> {
   }
 
   renderMarkerChild(dom: HTMLElement, child: any) {
-    render(<div>{child}</div>, dom);
+    render(
+      <AMapContext.Provider
+        value={{ ...this.props.context, map: this.props.__map__ }}
+      >
+        <div>{child}</div>
+      </AMapContext.Provider>,
+      dom,
+    );
   }
 
   buildCreateOptions(props: MarkerProps, raw: any, idx: number) {
@@ -236,7 +258,7 @@ class Markers extends Component<MarkerProps, {}> {
     // 还是不强制好，通过覆盖的方式来(如果有 render，覆盖 content/icon);
     const disabledKeys = ['extData'];
     MarkerAllProps.forEach((key) => {
-      if ((key in raw) && (disabledKeys.indexOf(key) === -1)) {
+      if (key in raw && disabledKeys.indexOf(key) === -1) {
         result[key] = getPropValue(key, raw[key]);
       } else if (key in props) {
         if (isFun(props[key])) {
@@ -258,23 +280,24 @@ class Markers extends Component<MarkerProps, {}> {
   }
 
   refreshMarkersLayout(nextProps: MarkerProps) {
-    const markerChanged = (nextProps.markers !== this.props.markers);
-    const clusterChanged = ((!!this.props.useCluster) !== (!!nextProps.useCluster));
+    const markerChanged = nextProps.markers !== this.props.markers;
+    const clusterChanged = !!this.props.useCluster !== !!nextProps.useCluster;
     if (clusterChanged) {
       this.checkClusterSettings(nextProps);
     }
     if (markerChanged) {
-      this.markersCache.length && this.markersCache.forEach((marker) => {
-        if (marker) {
-          marker.setMap(null);
-          marker = null;
-        }
-      });
+      this.markersCache.length &&
+        this.markersCache.forEach((marker) => {
+          if (marker) {
+            marker.setMap(null);
+            marker = null;
+          }
+        });
       this.markersCache = defaultOpts.markersCache;
       this.createMarkers(nextProps);
       this.setMarkerChild();
     }
-    if (markerChanged || (clusterChanged)) {
+    if (markerChanged || clusterChanged) {
       if (this.markersWindow) {
         this.markersWindow.close();
       }
@@ -285,7 +308,7 @@ class Markers extends Component<MarkerProps, {}> {
     if (this.mapCluster) {
       return Promise.resolve(this.mapCluster);
     }
-    const config = (typeof clusterConfig === 'boolean') ? {} : clusterConfig;
+    const config = typeof clusterConfig === 'boolean' ? {} : clusterConfig;
     return new Promise((resolve) => {
       this.map.plugin(['AMap.MarkerClusterer'], () => {
         resolve(this.createClusterPlugin(config));
@@ -306,7 +329,7 @@ class Markers extends Component<MarkerProps, {}> {
       maxZoom: 18,
       gridSize: 60,
       // styles: [style, style, style],
-      averageCenter: true
+      averageCenter: true,
     };
 
     ClusterProps.forEach((key) => {
@@ -399,7 +422,7 @@ class Markers extends Component<MarkerProps, {}> {
       closeWhenClickMap: true,
       content: '<span>loading...</span>',
       showShadow: false,
-      offset: new window.AMap.Pixel(0, -20)
+      offset: new window.AMap.Pixel(0, -20),
     });
     this.markersDOM = document.createElement('div');
     this.markersDOM.className = 'amap_markers_pop_window';
@@ -439,12 +462,23 @@ class Markers extends Component<MarkerProps, {}> {
         itemDOM.className = 'window_marker_item';
         itemDOM.appendChild(contentDOM);
         itemDOM.markerRef = m;
-        itemDOM.addEventListener('click', this.onWindowMarkerClick.bind(this, itemDOM), true);
-        itemDOM.addEventListener('mouseover', this.onWindowMarkerHover.bind(this, itemDOM), true);
-        itemDOM.addEventListener('mouseout', this.onWindowMarkerHoverOut.bind(this, itemDOM), true);
+        itemDOM.addEventListener(
+          'click',
+          this.onWindowMarkerClick.bind(this, itemDOM),
+          true,
+        );
+        itemDOM.addEventListener(
+          'mouseover',
+          this.onWindowMarkerHover.bind(this, itemDOM),
+          true,
+        );
+        itemDOM.addEventListener(
+          'mouseout',
+          this.onWindowMarkerHoverOut.bind(this, itemDOM),
+          true,
+        );
 
         this.markersDOM.appendChild(itemDOM);
-
       });
       if (length > MAX_INFO_MARKERS) {
         const warning = document.createElement('div');
@@ -469,15 +503,16 @@ class Markers extends Component<MarkerProps, {}> {
     const events = this.props.events || {};
     const list = Object.keys(events);
     const preserveEv = ['click', 'mouseover', 'mouseout', 'created'];
-    list.length && list.forEach((evName) => {
-      if (preserveEv.indexOf(evName) === -1) {
-        marker.on(evName, events[evName]);
-      }
-    });
+    list.length &&
+      list.forEach((evName) => {
+        if (preserveEv.indexOf(evName) === -1) {
+          marker.on(evName, events[evName]);
+        }
+      });
   }
 
   render() {
-    return (null);
+    return null;
   }
 }
 

@@ -2,6 +2,7 @@ import { toLnglat, toPixel } from './common';
 import React from 'react';
 import { render } from 'react-dom';
 import isFun from './isFun';
+import { AMapContext } from '../context';
 
 export const MarkerConfigurableProps = [
   'position',
@@ -17,7 +18,7 @@ export const MarkerConfigurableProps = [
   'title',
   'clickable',
   'extData',
-  'label'
+  'label',
 ];
 
 export const MarkerAllProps = MarkerConfigurableProps.concat([
@@ -26,7 +27,7 @@ export const MarkerAllProps = MarkerConfigurableProps.concat([
   'raiseOnDrag',
   'cursor',
   'autoRotation',
-  'shape'
+  'shape',
 ]);
 
 export const getPropValue = (key, value) => {
@@ -41,13 +42,18 @@ export const getPropValue = (key, value) => {
   return value;
 };
 
-export const renderMarkerComponent = (component, marker) => {
+export const renderMarkerComponent = (component, marker, map, context) => {
   let child = component;
   if (isFun(component)) {
     const extData = marker.getExtData();
     child = component(extData);
   }
   if (child) {
-    render(<div>{child}</div>, marker.getContent());
+    render(
+      <AMapContext.Provider value={{ ...context, map: map }}>
+        <div>{child}</div>
+      </AMapContext.Provider>,
+      marker.getContent(),
+    );
   }
 };

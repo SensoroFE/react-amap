@@ -3,7 +3,12 @@ import * as React from 'react';
 
 export type EventMap = Object;
 
-export type PluginList = 'Scale' | 'ToolBar' | 'MapType' | 'OverView' | 'ControlBar'
+export type PluginList =
+  | 'Scale'
+  | 'ToolBar'
+  | 'MapType'
+  | 'OverView'
+  | 'ControlBar';
 
 export interface PluginConfig {
   name: PluginList;
@@ -29,7 +34,10 @@ export interface AMapLngLat {
 }
 export type LngLat = ArrayLngLat | LngLatPos | FullLngLatPos | AMapLngLat;
 
-export type Path = Array<ArrayLngLat> | Array<FullLngLatPos> | Array<AMapLngLat>;
+export type Path =
+  | Array<ArrayLngLat>
+  | Array<FullLngLatPos>
+  | Array<AMapLngLat>;
 
 export type PolygonPath = Path | [Path, Path];
 
@@ -59,17 +67,22 @@ export type Size = ObjSize | AMapSize;
 
 export type MapFeature = 'bg' | 'point' | 'road' | 'building';
 
-export interface MapProps {
+export interface AMapContextValue {
+  map: any;
+  [key: string]: any;
+}
+
+export interface MapProps<C extends AMapContextValue> {
   protocol?: string;
   amapkey?: string;
   version?: string;
   useAMapUI?: boolean | Function;
   children?: any;
   onInstanceCreated?: Function;
-  plugins?: Array<PluginList|PluginConfig>;
+  plugins?: Array<PluginList | PluginConfig>;
   events?: EventMap;
   loading?: any;
-  viewMode?: '2D'|'3D';
+  viewMode?: '2D' | '3D';
   center?: LngLat;
   zoom?: number;
   zooms?: [number, number];
@@ -103,6 +116,7 @@ export interface MapProps {
   limitBounds?: any;
   status?: any;
   rotation?: number;
+  context?: C;
 }
 
 export interface MarkerProps {
@@ -211,7 +225,7 @@ export interface MouseToolProps {
   events?: EventMap;
 }
 
-export class Map extends React.Component<MapProps, {mapLoaded: boolean}> {}
+export class Map extends React.Component<MapProps, { mapLoaded: boolean }> {}
 
 export class Marker extends React.Component<MarkerProps, {}> {}
 
